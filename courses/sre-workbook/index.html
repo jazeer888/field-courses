@@ -1,0 +1,1036 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="A free, interactive course on the core ideas of The Site Reliability Workbook: SLIs, SLOs, error budgets, alerting, toil, incidents and SRE teams.">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>SRE Workbook Field Course</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: course shell — module rail on the left, one lesson step at a time on the right; rail becomes a scroll strip on phones */
+:root{
+  --bg:#F3F5F9; --surface:#FFFFFF; --sunk:#EBEEF5; --ink:#131A2A; --muted:#566079; --line:#D9DEE8;
+  --accent:#2A43C4; --accent-ink:#FFFFFF; --accent-soft:#E5E9FB;
+  --budget:#A85F00; --budget-soft:#FBEFD9; --ok:#1C7348; --ok-soft:#DFF2E7; --bad:#B42318; --bad-soft:#FBE4E1;
+  --f-display:"Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Public Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1220; --surface:#161B2B; --sunk:#1C2236; --ink:#E7EAF3; --muted:#9BA4BA; --line:#2A3149;
+  --accent:#8FA2FF; --accent-ink:#0E1220; --accent-soft:#1F2752;
+  --budget:#F2A640; --budget-soft:#3A2A12; --ok:#55C890; --ok-soft:#14321F; --bad:#F27A70; --bad-soft:#3D1A18; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0E1220; --surface:#161B2B; --sunk:#1C2236; --ink:#E7EAF3; --muted:#9BA4BA; --line:#2A3149;
+  --accent:#8FA2FF; --accent-ink:#0E1220; --accent-soft:#1F2752;
+  --budget:#F2A640; --budget-soft:#3A2A12; --ok:#55C890; --ok-soft:#14321F; --bad:#F27A70; --bad-soft:#3D1A18; color-scheme:dark;}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6}
+.app{max-width:1220px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+h1,h2,h3{font-family:var(--f-display);line-height:1.15;text-wrap:balance;margin:0}
+p{margin:0}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:flex-end;justify-content:space-between;padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:24px}
+.brand .kicker{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.brand h1{font-size:clamp(26px,4vw,36px);margin-top:4px}
+.brand .src{color:var(--muted);font-size:14px;margin-top:6px;max-width:62ch}
+.prog{min-width:240px;flex:0 1 320px}
+.prog .row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.prog .bar{height:8px;background:var(--sunk);border-radius:99px;overflow:hidden;margin-top:6px}
+.prog .bar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .3s}
+.reset{background:none;border:0;color:var(--muted);font-size:12px;text-decoration:underline;padding:0;margin-top:6px}
+
+/* layout */
+.layout{display:grid;grid-template-columns:272px minmax(0,1fr);gap:32px;align-items:start}
+.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);display:flex;flex-direction:column;gap:4px}
+.rail .lbl{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 6px 10px}
+.mod{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;text-align:left;background:none;border:1px solid transparent;border-radius:8px;padding:8px 10px}
+.mod:hover{background:var(--sunk)}
+.mod.on{background:var(--surface);border-color:var(--line)}
+.mod .n{font-family:var(--f-mono);font-size:12px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--line);color:var(--muted)}
+.mod.on .n{border-color:var(--accent);color:var(--accent)}
+.mod.done .n{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.mod .t{font-size:14px;font-weight:500;line-height:1.3}
+.mod .c{font-family:var(--f-mono);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* lesson */
+.lesson{min-width:0}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.lesson h2.mtitle{font-size:clamp(26px,3.4vw,34px);margin-top:6px}
+.refs{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.ref{font-family:var(--f-mono);font-size:11.5px;padding:3px 8px;border-radius:99px;background:var(--sunk);color:var(--muted)}
+.dots{display:flex;flex-wrap:wrap;gap:6px;margin:20px 0 14px}
+.dot{width:30px;height:6px;border-radius:99px;background:var(--line);border:0;padding:0}
+.dot.seen{background:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.dot.cur{background:var(--accent)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:clamp(18px,3vw,32px)}
+.card h3{font-size:22px;margin-bottom:12px}
+.card .body{display:flex;flex-direction:column;gap:14px;max-width:72ch}
+.card .body.wide{max-width:none}
+.card ul,.card ol{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px}
+.steptype{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.tutor{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:start;background:var(--accent-soft);border-radius:8px;padding:12px 14px;margin-top:18px;max-width:72ch}
+.tutor .who{font-family:var(--f-mono);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);padding-top:3px}
+.tutor p{font-size:15px}
+.plain{border-left:3px solid var(--budget);background:var(--budget-soft);border-radius:0 8px 8px 0;padding:12px 16px;margin:0 0 16px;max-width:72ch;display:flex;flex-direction:column;gap:2px}
+.plain .who{font-family:var(--f-mono);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--budget)}
+.plain p{font-size:16px}
+.src a{color:var(--accent)}
+.back{font-family:var(--f-mono);font-size:12px;color:var(--accent);text-decoration:none;display:inline-block;margin-bottom:8px}
+.back:hover{text-decoration:underline}
+.foot{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 16px}
+.foot a{color:var(--accent)}
+.formula{font-family:var(--f-mono);background:var(--sunk);border-radius:8px;padding:12px 14px;font-size:15px;overflow-x:auto}
+.controls{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 16px;font-weight:600;font-size:15px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:disabled{opacity:.4;cursor:default}
+.stepcount{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* tables */
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);background:var(--sunk);font-weight:600}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* book map */
+.map{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.part{border:1px solid var(--line);border-radius:8px;padding:14px;background:var(--bg)}
+.part h4{font-family:var(--f-display);font-size:17px;margin:0 0 2px}
+.part .sub{font-size:12.5px;color:var(--muted);margin-bottom:8px}
+.part ol{font-size:13.5px;gap:3px;padding-left:2.1em}
+.part li::marker{font-family:var(--f-mono);font-size:11.5px;color:var(--muted)}
+
+/* chain diagram */
+.chain{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chain span{padding:6px 10px;border-radius:6px;background:var(--sunk);font-size:13.5px;font-weight:500}
+.chain span.k{background:var(--accent-soft);color:var(--accent)}
+.chain b{color:var(--muted);font-weight:400}
+
+/* quiz */
+.q{font-size:18px;font-weight:600;line-height:1.4}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px;align-items:start;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:11px 14px;font-size:15px}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt .k{font-family:var(--f-mono);font-size:12px;width:24px;height:24px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;color:var(--muted)}
+.opt.right{border-color:var(--ok);background:var(--ok-soft)}
+.opt.right .k{background:var(--ok);border-color:var(--ok);color:var(--surface)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.opt.wrong .k{background:var(--bad);border-color:var(--bad);color:var(--surface)}
+.opt:disabled{cursor:default}
+.fb{border-radius:8px;padding:12px 14px;font-size:15px}
+.fb.ok{background:var(--ok-soft)}
+.fb.no{background:var(--bad-soft)}
+.fb b{display:block;margin-bottom:2px}
+
+/* widgets */
+.w{display:flex;flex-direction:column;gap:14px}
+.wlabel{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:6px 11px;font-family:var(--f-mono);font-size:13px}
+.seg button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:13px;color:var(--muted)}
+.field input,.field select{font:inherit;font-family:var(--f-mono);font-size:15px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);width:100%}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.stat{background:var(--sunk);border-radius:8px;padding:12px 14px}
+.stat .v{font-family:var(--f-mono);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;font-size:13px;font-weight:600}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--budget-soft);color:var(--budget)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.off{background:var(--sunk);color:var(--muted)}
+.meter{height:14px;background:var(--sunk);border-radius:99px;overflow:hidden;position:relative}
+.meter i{display:block;height:100%;background:var(--budget);transition:width .35s}
+.meter.over i{background:var(--bad)}
+.log{display:flex;flex-direction:column;gap:6px;font-size:14px}
+.log div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed var(--line);padding-bottom:4px}
+.log .num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.evbtns{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+.evbtn{text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:10px 12px;font-size:14px;line-height:1.35}
+.evbtn:hover{border-color:var(--accent)}
+.evbtn small{display:block;color:var(--muted);font-family:var(--f-mono);font-size:12px;margin-top:3px}
+.notice{border-radius:8px;padding:10px 14px;font-size:14.5px}
+.notice.warn{background:var(--budget-soft)}
+.notice.bad{background:var(--bad-soft)}
+.notice.ok{background:var(--ok-soft)}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.pc{border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}
+.pc h4{margin:0;font-family:var(--f-display);font-size:17px}
+.pc .more{font-size:14px;display:flex;flex-direction:column;gap:6px}
+.pc .more .tag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.pc .more .tag.g{color:var(--ok)} .pc .more .tag.b{color:var(--bad)}
+.link{background:none;border:0;padding:0;color:var(--accent);font-weight:600;font-size:14px;text-align:left}
+
+.sort{display:flex;flex-direction:column;gap:8px}
+.sitem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.sitem .txt{font-size:14.5px}
+.sitem .why{grid-column:1/-1;font-size:13.5px;color:var(--muted)}
+.sitem.right{border-color:var(--ok)} .sitem.wrong{border-color:var(--bad)}
+.sitem .seg button{font-family:var(--f-body);font-size:13px}
+
+.stages{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.stage{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:10px 12px;text-align:left;display:flex;flex-direction:column;gap:2px}
+.stage .s{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.stage b{font-size:14.5px;line-height:1.3}
+.stage.on{border-color:var(--accent);background:var(--accent-soft)}
+.detail{border-left:3px solid var(--accent);padding:4px 0 4px 14px;display:flex;flex-direction:column;gap:8px}
+
+.check{display:flex;flex-direction:column;gap:6px}
+.check label{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;align-items:start;font-size:15px;cursor:pointer}
+.check input{margin-top:5px;accent-color:var(--accent);width:16px;height:16px}
+.glo{display:grid;grid-template-columns:minmax(120px,180px) minmax(0,1fr);gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.glo dt,.glo dd{margin:0;padding:9px 12px;border-bottom:1px solid var(--line);font-size:14.5px}
+.glo dt{font-weight:700;background:var(--sunk)}
+.glo dt:nth-last-of-type(1),.glo dd:last-child{border-bottom:0}
+
+@media (max-width:860px){
+  .layout{grid-template-columns:minmax(0,1fr);gap:18px}
+  .rail{position:static;flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:6px}
+  .rail .lbl{display:none}
+  .mod{grid-template-columns:24px auto;flex:0 0 auto;white-space:nowrap;border-color:var(--line);background:var(--surface)}
+  .mod .c{display:none}
+  .mod .n{width:22px;height:22px;font-size:11px}
+  .glo{grid-template-columns:minmax(0,1fr)}
+  .glo dt{border-bottom:0;padding-bottom:2px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <a class="back" href="../../">← All Field Courses</a>
+      <div class="kicker">Self-paced course · 11 modules · about 50 minutes</div>
+      <h1>SRE Workbook Field Course</h1>
+      <p class="src">A guided tour of <i>The Site Reliability Workbook</i> (O'Reilly, 2018), edited by Betsy Beyer, Niall Richard Murphy, David K. Rensin, Kent Kawahara and Stephen Thorne. An independent study guide, not affiliated with Google or O'Reilly. Google publishes the full book free at <a href="https://sre.google/workbook/table-of-contents/" target="_blank" rel="noopener">sre.google/workbook</a>.</p>
+    </div>
+    <div class="prog" aria-live="polite">
+      <div class="row"><span>Course progress</span><span id="progTxt">0%</span></div>
+      <div class="bar"><i id="progBar" style="width:0%"></i></div>
+      <button class="reset" id="resetBtn" type="button">Start over</button>
+    </div>
+  </header>
+  <div class="layout">
+    <nav class="rail" id="rail" aria-label="Modules"></nav>
+    <main class="lesson" id="lesson"></main>
+  </div>
+  <footer class="foot">
+    <span>Last reviewed: October 2026</span>
+    <a href="https://github.com/jazeer888/field-courses/issues/new?template=error-report.md&amp;title=%5Bsre-workbook%5D+" target="_blank" rel="noopener">Found an error? Report it</a>
+    <a href="https://github.com/jazeer888/field-courses" target="_blank" rel="noopener">Source on GitHub</a>
+    <span>Content <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> · Code MIT</span>
+  </footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- course content ---------- */
+const M = [
+{ title:"Start here", refs:["Preface","Ch 1"], steps:[
+  {t:"text", h:"What this book is, and what it isn't", html:`
+    <p>Google published <i>Site Reliability Engineering</i> in 2016. It explained <b>what</b> SRE is and why Google runs production that way. Readers kept asking the same question afterwards: "How do we actually do this in a company that isn't Google?"</p>
+    <p><i>The Site Reliability Workbook</i> (2018) answers that question. It's practical. Most chapters pair a principle with worked examples and case studies from Google and from other companies such as Evernote, The Home Depot and Waze.</p>
+    <p>This course follows the book's own order: <b>foundations</b> first (SLIs, SLOs, error budgets, alerting, toil), then <b>practices</b> (on-call, incidents, postmortems, safe releases), then <b>organization</b> (how SRE teams engage, grow and change a company).</p>`,
+   tip:"Each module ends with a checkpoint question. Answer it honestly. Your score shows up at the end, and the questions you miss tell you which chapter to read in full."},
+  {t:"text", h:"The book on one page", wide:true, html:`
+    <p>Three parts and three appendices. You don't need to memorize the chapters. The point is to see that the book is built bottom-up: you can't run good incidents without SLOs, and you can't build SRE teams without both.</p>
+    <div class="map">
+      <div class="part"><h4>Part I · Foundations</h4><div class="sub">Measure reliability and protect it</div><ol>
+        <li>How SRE relates to DevOps</li><li>Implementing SLOs</li><li>SLO engineering case studies</li><li>Monitoring</li><li>Alerting on SLOs</li><li>Eliminating toil</li><li>Simplicity</li></ol></div>
+      <div class="part"><h4>Part II · Practices</h4><div class="sub">Run production day to day</div><ol start="8">
+        <li>On-call</li><li>Incident response</li><li>Postmortem culture</li><li>Managing load</li><li>Non-abstract large system design</li><li>Data processing pipelines</li><li>Configuration design</li><li>Configuration specifics</li><li>Canarying releases</li><li>Identifying and recovering from overload</li></ol></div>
+      <div class="part"><h4>Part III · Processes</h4><div class="sub">Make it work across an organization</div><ol start="18">
+        <li>SRE engagement model</li><li>SRE: reaching beyond your walls</li><li>SRE team lifecycles</li><li>Organizational change management</li></ol>
+        <div class="sub" style="margin:12px 0 4px">Appendices</div>
+        <ol type="A"><li>Example SLO document</li><li>Example error budget policy</li><li>Results of postmortem analysis</li></ol></div>
+    </div>`},
+  {t:"text", h:"SRE and DevOps: an interface and its implementation", plain:"DevOps is the goal: developers and operations working together and improving all the time. SRE is a specific way to get there, with a reliability target, a number that tells you when to stop shipping, and clear rules for who gets called when things break. If DevOps is “eat healthier”, SRE is a concrete meal plan.", html:`
+    <p>The book's opening chapter puts it in programmer terms:</p>
+    <div class="formula">class SRE implements interface DevOps</div>
+    <p>DevOps is a set of principles. SRE is one concrete way to implement them, with specific numbers, policies and roles. Here's how the five DevOps pillars map to SRE practice:</p>
+    <div class="tw"><table><thead><tr><th>DevOps pillar</th><th>SRE implementation</th></tr></thead><tbody>
+      <tr><td>Reduce organizational silos</td><td>Developers and SREs share ownership of production. Both use the same tools.</td></tr>
+      <tr><td>Accept failure as normal</td><td>Error budgets and blameless postmortems.</td></tr>
+      <tr><td>Implement gradual change</td><td>Small releases, canaries, fast rollback.</td></tr>
+      <tr><td>Leverage tooling and automation</td><td>Cap toil and automate it away.</td></tr>
+      <tr><td>Measure everything</td><td>SLIs and SLOs as the shared language of reliability.</td></tr>
+    </tbody></table></div>`,
+   tip:"Keep this mapping in mind. Whenever you're unsure why the book recommends something, trace it back to one of these five pillars."},
+  {t:"quiz", q:"Which statement best describes how SRE relates to DevOps?", o:[
+     "SRE replaces DevOps in mature organizations",
+     "SRE is a concrete, prescriptive implementation of DevOps principles",
+     "DevOps is the operations team; SRE is the development team",
+     "They're the same thing under different names"], a:1,
+   why:"The book frames DevOps as the interface (principles) and SRE as one implementation with specific practices: SLOs, error budgets, toil caps and blameless postmortems. You can do DevOps without SRE, but SRE always does DevOps."}
+]},
+
+{ title:"The seven principles", refs:["Ch 1"], steps:[
+  {t:"widget", w:"principles", h:"Seven principles behind every practice", plain:"SRE in one sentence: treat running software as an engineering problem, agree on how reliable it needs to be, and automate the boring parts.",
+   intro:"Every practice in the book traces back to one of these. Open each card to see what it looks like when a team gets it right, and the anti-pattern that shows up when it doesn't.",
+   tip:"Try to spot which anti-patterns you've seen before. Those are your best starting points."},
+  {t:"quiz", q:"A team of six engineers calls itself 'SRE', but 80% of its time goes to tickets and manual deploys. Which principle is it violating most?", o:[
+     "Manage by SLOs","Minimize toil: operational work should stay at or below 50% of SRE time","Use the same tooling regardless of function","Share ownership with developers"], a:1,
+   why:"The 50% cap is what keeps SRE an engineering team. Above it, the team becomes an ops team under a new name: headcount grows with every service and nothing gets automated."},
+  {t:"quiz", q:"Why does SRE reject 100% as a reliability target?", o:[
+     "100% is possible, but monitoring it would cost too much",
+     "Users can't tell the difference past a certain point, and each extra nine costs far more while slowing feature work",
+     "Regulators forbid promising 100%",
+     "Customers prefer some downtime because it means features ship"], a:1,
+   why:"A user's phone, Wi-Fi and ISP are all less reliable than 99.99%, so they can't see your fifth nine. Each nine costs roughly ten times more engineering and slows releases. The right target is the one users notice, and no higher."}
+]},
+
+{ title:"SLIs: what to measure", refs:["Ch 2","Ch 3","Ch 4"], steps:[
+  {t:"text", h:"Service level indicator (SLI)", plain:"An SLI is a score for how well users are being served. Think of a restaurant counting how many dishes left the kitchen hot and on time, out of all the dishes ordered.", html:`
+    <p>An SLI is a <b>measurement of how your service behaves from the user's point of view</b>. The book recommends writing every SLI as the same ratio:</p>
+    <div class="formula">SLI = good events ÷ valid events × 100%</div>
+    <p>This gives you a number from 0% to 100%, where 100% means everything was good. Using a ratio for every SLI matters: SLOs, error budgets and alerts can then all use the same math, whatever the service does.</p>
+    <p><b>Example: the checkout API of an online store</b></p>
+    <ul>
+      <li><b>Valid events:</b> all checkout requests, excluding automated health checks.</li>
+      <li><b>Good events:</b> requests that complete successfully in under 300 ms.</li>
+    </ul>`,
+   tip:"Good and valid events are both choices you make. Most of the thinking goes into deciding what counts as 'good' from the user's side."},
+  {t:"text", h:"The SLI menu", plain:"Most services only need to answer a few questions. Does it work? Is it fast? Is the data fresh and correct? Each question becomes one SLI.", wide:true, html:`
+    <p>You don't have to invent SLIs from scratch. The book gives a short menu by type of system. Most services need only two or three of these.</p>
+    <div class="tw"><table><thead><tr><th>System type</th><th>SLI</th><th>Proportion of…</th></tr></thead><tbody>
+      <tr><td rowspan="3">Request-driven<br><small>APIs, web apps</small></td><td><b>Availability</b></td><td>requests served successfully</td></tr>
+      <tr><td><b>Latency</b></td><td>requests served faster than a threshold</td></tr>
+      <tr><td><b>Quality</b></td><td>requests served without a degraded response</td></tr>
+      <tr><td rowspan="3">Pipeline<br><small>batch jobs, sync, indexing</small></td><td><b>Freshness</b></td><td>data updated more recently than a threshold</td></tr>
+      <tr><td><b>Correctness</b></td><td>records processed with correct output</td></tr>
+      <tr><td><b>Coverage</b></td><td>data or jobs processed successfully</td></tr>
+      <tr><td>Storage</td><td><b>Durability</b></td><td>written data that can be read back</td></tr>
+    </tbody></table></div>`},
+  {t:"text", h:"Specification vs. implementation, and where to measure", plain:"First say what users care about in everyday words. Then decide exactly where and how to count it. Different places to count catch different problems.", wide:true, html:`
+    <p>The book separates two things:</p>
+    <ul>
+      <li><b>SLI specification</b>: what users care about, in plain words. <i>"Checkout is fast."</i></li>
+      <li><b>SLI implementation</b>: exactly how you measure it. <i>"Percentage of /checkout requests completing in under 300 ms, measured at the load balancer."</i></li>
+    </ul>
+    <p>One specification can have several implementations, each with trade-offs:</p>
+    <div class="tw"><table><thead><tr><th>Measure at</th><th>Strength</th><th>Blind spot</th></tr></thead><tbody>
+      <tr><td>Application logs</td><td>Easy to add, rich detail per request</td><td>Misses requests that never reached the server</td></tr>
+      <tr><td>Load balancer</td><td>Closer to the user, covers every backend</td><td>Can't see client-side problems</td></tr>
+      <tr><td>Synthetic probes</td><td>Catches total outages, even with no traffic</td><td>Only measures the paths you script</td></tr>
+      <tr><td>Client instrumentation</td><td>Closest to what users experience</td><td>Noisy, delayed, includes factors you don't control</td></tr>
+    </tbody></table></div>`,
+   tip:"The book's advice is to start with the measurement you already have, usually load balancer or app metrics, and move it closer to the user over time."},
+  {t:"widget", w:"slicalc", h:"Try it: calculate an SLI",
+   intro:"Here's one day of traffic for a store's checkout API. Change the numbers and watch the SLI and the comparison against a 99.9% target."},
+  {t:"text", h:"Case study: The Home Depot's VALET", html:`
+    <p>Chapter 3 shows how other companies adapted SLOs. The Home Depot taught its teams a simple acronym for picking SLIs:</p>
+    <div class="tw"><table><tbody>
+      <tr><td class="num">V</td><td><b>Volume</b>: how much traffic the service handles</td></tr>
+      <tr><td class="num">A</td><td><b>Availability</b>: is it up and serving?</td></tr>
+      <tr><td class="num">L</td><td><b>Latency</b>: is it fast enough?</td></tr>
+      <tr><td class="num">E</td><td><b>Errors</b>: how often does it fail?</td></tr>
+      <tr><td class="num">T</td><td><b>Tickets</b>: how much manual intervention does it need?</td></tr>
+    </tbody></table></div>
+    <p>The lesson is that the framework only matters if your teams adopt it. A memorable name and a dashboard every team gets automatically did more for adoption than a perfect definition would have.</p>`},
+  {t:"quiz", q:"Which is the best latency SLI?", o:[
+     "Average response time over the day",
+     "Proportion of requests completing in under 300 ms",
+     "Maximum response time seen today",
+     "CPU utilization of the API servers"], a:1,
+   why:"Averages hide the slow tail where users actually suffer, a maximum is one outlier, and CPU is a cause rather than a symptom. A proportion against a threshold fits the good/valid ratio and plugs straight into SLO math."},
+  {t:"quiz", q:"A background job refreshes the product prices shown on your store every few minutes. Which SLI type fits it best?", o:[
+     "Availability","Freshness","Throughput","Durability"], a:1,
+   why:"What users depend on is how recent the data is. If the job stalls, customers see old prices while every page still loads fine and looks healthy. Freshness catches exactly that."}
+]},
+
+{ title:"SLOs and SLAs", refs:["Ch 2","Ch 3","App A"], steps:[
+  {t:"text", h:"From measurement to target to promise", plain:"Think of a student. The SLI is the score on each test. The SLO is the score they aim for, say 90%. The SLA is what they promised their parents, with a consequence if they miss it, say 80%. Aim higher than you promise so you have room to recover.", html:`
+    <div class="chain"><span class="k">SLI</span><b>→</b><span class="k">SLO</span><b>→</b><span class="k">SLA</span></div>
+    <ul>
+      <li><b>SLI</b>: the measurement. <i>"Percentage of checkout requests that succeed in under 300 ms."</i></li>
+      <li><b>SLO (service level objective)</b>: your internal target for that SLI over a time window. <i>"99.9% of checkout requests succeed in under 300 ms over a rolling 28 days."</i></li>
+      <li><b>SLA (service level agreement)</b>: a contract with customers, with consequences such as service credits if you miss it.</li>
+    </ul>
+    <p>The rule: <b>your SLA must be looser than your SLO.</b> The SLO is your early warning. You want to see it slip and fix things long before you owe a customer anything.</p>`,
+   tip:"SRE teams care mostly about SLOs. SLAs belong to sales and legal, but they should always be set with the SLO in hand."},
+  {t:"widget", w:"nines", h:"Try it: what each nine allows", plain:"Engineers describe reliability in “nines”: 99.9% is three nines. Each extra nine looks small but leaves ten times less room for failure.",
+   intro:"Pick a target and a window. This shows how much failure each SLO allows. Each extra nine cuts your room for failure by a factor of ten."},
+  {t:"text", h:"Choosing your first SLO", html:`
+    <p>The book's practical guidance:</p>
+    <ul>
+      <li><b>Start from what users notice</b>, not just what you achieve today. Today's performance is a useful input, but it shouldn't decide the target alone.</li>
+      <li><b>Keep it short.</b> One to three SLOs per critical user journey. More than that and nobody watches them.</li>
+      <li><b>Use a rolling window.</b> The book recommends 28 days: it always contains four of each weekday, so weekly patterns don't skew it.</li>
+      <li><b>Get sign-off.</b> Product, development and SRE all have to agree. An SLO nobody agreed to doesn't change any decisions.</li>
+      <li><b>Iterate.</b> Your first SLO will be wrong. Review it every quarter and adjust it.</li>
+    </ul>`},
+  {t:"widget", w:"matrix", h:"Try it: the SLO decision matrix", plain:"An SLO is only useful if it changes what you do. This table turns three simple observations into a clear next step.",
+   intro:"Chapter 2 gives a table for deciding what to do once an SLO is running. Set the three conditions and see the book's recommendation.",
+   tip:"This is the real value of an SLO: it turns 'is reliability good enough?' into a decision you can look up, instead of an argument."},
+  {t:"text", h:"The SLO document (Appendix A)", html:`
+    <p>The book includes a complete example SLO document. Yours should cover the same sections:</p>
+    <ol>
+      <li><b>Service overview</b>: what the service does and who uses it.</li>
+      <li><b>SLIs and SLOs</b>: each with its specification, implementation and target.</li>
+      <li><b>Rationale</b>: why these numbers were chosen.</li>
+      <li><b>Error budget</b>: what the targets allow.</li>
+      <li><b>Clarifications and caveats</b>: what's excluded (planned maintenance, abusive clients and so on).</li>
+      <li><b>Approvers and review date</b>: who signed and when it gets revisited.</li>
+    </ol>`},
+  {t:"quiz", q:"Your internal SLO is 99.9%. Which external SLA makes the most sense?", o:["99.99%","99.9%","99.5%","100%"], a:2,
+   why:"The SLA should be looser than the SLO so you can miss your internal target occasionally without owing customers credits. An SLA equal to the SLO leaves no margin, and a tighter one guarantees penalties."},
+  {t:"quiz", q:"You meet your SLO, toil is low, but customers keep complaining about reliability. What does the decision matrix suggest?", o:[
+     "Loosen the SLO","Tighten the SLO","Freeze all releases","Hire more SREs"], a:1,
+   why:"If users are unhappy while you meet the target, the target is measuring the wrong thing or is too lenient. Tighten it, or revisit the SLI, so it reflects what users experience."}
+]},
+
+{ title:"Error budgets", refs:["Ch 2","App B"], steps:[
+  {t:"text", h:"Error budget = 1 − SLO", plain:"An error budget is a monthly allowance for failure. If you aim for 99.9%, you're allowed to fail 0.1% of the time. Spend it on new features and experiments. When it's gone, stop and fix things.", html:`
+    <div class="formula">error budget = 100% − SLO</div>
+    <p>A 99.9% SLO gives you a 0.1% error budget. Over 28 days that's about <b>40 minutes</b> of complete outage, or <b>1,000 failed requests out of every million</b>.</p>
+    <p>The idea that changes behavior: <b>the budget is meant to be spent.</b> Releases, experiments, migrations and risky launches all draw on it. When budget is left over, the team can move faster. When it runs out, reliability work comes first.</p>
+    <p>This ends the usual argument between developers ("ship faster") and operations ("don't touch it"). Both sides agreed to the same number in advance, and the budget decides.</p>`,
+   tip:"If you end every window with most of your budget unspent, you're probably being too cautious. That's a signal to ship faster or take on more risk."},
+  {t:"widget", w:"budgetsim", h:"Simulation: spend a month of error budget", plain:"Every incident spends some of the allowance. Watch what happens to your freedom to ship as the allowance runs down.",
+   intro:"Your checkout API has a 99.9% SLO over 28 days and handles 10 million requests in that window, so the budget is 10,000 failed requests. Trigger incidents and see how the error budget policy responds."},
+  {t:"text", h:"The error budget policy (Appendix B)", html:`
+    <p>A budget only changes behavior if a written, signed policy says what happens when it runs out. The book's example policy includes:</p>
+    <ul>
+      <li><b>Budget exceeded</b> over the trailing four weeks: halt all changes and releases except urgent (P0) bug fixes and security fixes, until the service is back within its SLO.</li>
+      <li><b>One incident uses more than 20%</b> of the four-week budget: the team writes a postmortem with at least one top-priority (P0) action item.</li>
+      <li><b>One class of outage uses more than 20%</b> of the budget over a quarter: fixing it becomes a P0 item in next quarter's planning.</li>
+      <li><b>Escalation:</b> if the teams disagree on applying the policy, a named executive (the CTO in the example) makes the call.</li>
+    </ul>
+    <p>The policy also states its <b>non-goals</b>: it isn't a punishment for missing the SLO. It's a way to protect users and set priorities.</p>`},
+  {t:"quiz", q:"It's day 20 of the window and the error budget is gone. Product wants to ship a big feature tomorrow. Under a typical policy, what happens?", o:[
+     "It ships if the product manager approves",
+     "Feature releases freeze; only P0 and security fixes ship, and the team works on reliability until it's back within SLO",
+     "The on-call engineer is held responsible",
+     "The budget resets so the launch can go ahead"], a:1,
+   why:"This is exactly the situation the policy exists for. Everyone signed it before the conflict, so nobody has to argue about it now. Exceptions go through the named escalation path, not through whoever is most persuasive."},
+  {t:"quiz", q:"After a full 28-day window you've used only 5% of your error budget. What's the most useful conclusion?", o:[
+     "Everything's perfect; change nothing",
+     "You may be over-investing in reliability and can afford to ship faster or take more risk, once you've confirmed the SLI is measuring correctly",
+     "Tighten the SLO to 100%",
+     "The alerts must be broken"], a:1,
+   why:"Unspent budget is unused room for faster releases and experiments. First check that the SLI isn't missing failures. If it's accurate, use the room or reconsider whether the SLO matches what users need."}
+]},
+
+{ title:"Monitoring and alerting", refs:["Ch 4","Ch 5"], steps:[
+  {t:"text", h:"Monitoring that supports SLOs", html:`
+    <ul>
+      <li><b>Metrics and logs</b> do different jobs. Metrics are cheap and fast to alert on. Logs hold the detail for debugging.</li>
+      <li><b>White-box</b> monitoring (internal metrics) and <b>black-box</b> monitoring (external probes) complement each other.</li>
+      <li><b>Treat monitoring config as code</b>: version control, code review, tests for alert logic.</li>
+      <li><b>Collect metrics with a purpose.</b> The book lists four kinds: intended changes (version, flags, config), dependencies (latency and errors of what you call), saturation (how full the service is), and the status of served traffic (the SLIs).</li>
+      <li><b>Alert on symptoms, not causes.</b> "Users are getting errors" deserves a page. "CPU is at 90%" usually doesn't.</li>
+    </ul>`},
+  {t:"text", h:"Four ways to judge an alert", plain:"A good alert is like a good smoke detector. It goes off for real fires and not for toast, it never misses a fire, it goes off quickly, and it stops beeping once the fire is out.", html:`
+    <div class="tw"><table><thead><tr><th>Property</th><th>Question it answers</th></tr></thead><tbody>
+      <tr><td><b>Precision</b></td><td>Of the alerts that fired, how many were real problems?</td></tr>
+      <tr><td><b>Recall</b></td><td>Of the real problems, how many triggered an alert?</td></tr>
+      <tr><td><b>Detection time</b></td><td>How long after the problem started did the alert fire?</td></tr>
+      <tr><td><b>Reset time</b></td><td>How long does the alert keep firing after the problem is fixed?</td></tr>
+    </tbody></table></div>
+    <p>Chapter 5 walks through six alerting strategies, each improving on the last:</p>
+    <ol>
+      <li>Alert when the error rate exceeds the SLO threshold. Fast, but very noisy.</li>
+      <li>Use a longer alert window. Fewer false alarms, but slow to reset.</li>
+      <li>Require the condition to last a while ("for: 1h"). Misses short, sharp outages.</li>
+      <li>Alert on <b>burn rate</b>.</li>
+      <li>Use several burn-rate alerts with different thresholds.</li>
+      <li><b>Multiwindow, multi-burn-rate alerts</b>: the book's recommendation.</li>
+    </ol>`},
+  {t:"text", h:"Burn rate", plain:"Burn rate is how fast you're spending your failure allowance. Spending exactly on pace is a burn rate of 1. Spending 14 times too fast means a month's allowance is gone in about two days, and that's worth waking someone up for.", html:`
+    <p>Burn rate is how fast you're using your error budget, compared with using it exactly evenly over the window.</p>
+    <div class="formula">burn rate = observed error rate ÷ (1 − SLO)</div>
+    <ul>
+      <li><b>Burn rate 1</b>: you'll use exactly the whole budget by the end of the window.</li>
+      <li><b>Burn rate 14.4</b>: in 1 hour you use 2% of a 30-day budget. The whole budget is gone in about 2 days.</li>
+    </ul>
+    <p>The recommended setup (for a 30-day window):</p>
+    <div class="tw"><table><thead><tr><th>Budget used</th><th>Long window</th><th>Short window</th><th>Burn rate</th><th>Action</th></tr></thead><tbody>
+      <tr><td class="num">2%</td><td class="num">1 h</td><td class="num">5 min</td><td class="num">14.4</td><td><span class="pill bad">Page</span></td></tr>
+      <tr><td class="num">5%</td><td class="num">6 h</td><td class="num">30 min</td><td class="num">6</td><td><span class="pill bad">Page</span></td></tr>
+      <tr><td class="num">10%</td><td class="num">3 days</td><td class="num">6 h</td><td class="num">1</td><td><span class="pill warn">Ticket</span></td></tr>
+    </tbody></table></div>
+    <p>An alert fires only when <b>both</b> windows exceed the burn rate. The long window keeps precision high. The short window, 1/12 of the long one, makes the alert stop firing soon after the problem is fixed.</p>`},
+  {t:"widget", w:"burn", h:"Try it: burn-rate alerting",
+   intro:"Set an SLO and drag the error rate. You'll see the burn rate, how long until the budget is gone, and which alerts would fire if the rate holds steady.",
+   tip:"Notice how the same 1% error rate is a minor issue at a 99% SLO and an emergency at 99.99%. The SLO decides how urgent a problem is."},
+  {t:"quiz", q:"Your SLO is 99.9% and the current error rate is 0.5%. What's the burn rate?", o:["0.5","5","50","14.4"], a:1,
+   why:"0.5% ÷ 0.1% = 5. You're using budget five times faster than sustainable, so a 30-day budget lasts about 6 days."},
+  {t:"quiz", q:"Why pair a 1-hour alert window with a short 5-minute window?", o:[
+     "To detect problems faster",
+     "So the alert stops firing soon after the problem is fixed (better reset time)",
+     "To reduce monitoring storage costs",
+     "For compliance reporting"], a:1,
+   why:"A 1-hour window keeps showing a high burn rate for up to an hour after recovery. Requiring the 5-minute window to agree as well means the page clears as soon as the service is healthy again."}
+]},
+
+{ title:"Toil and simplicity", refs:["Ch 6","Ch 7"], steps:[
+  {t:"text", h:"What counts as toil", plain:"Toil is washing every dish by hand every night when you could buy a dishwasher. It has to be done, but doing it never makes tomorrow any easier.", html:`
+    <p>Toil is the kind of operational work that grows as your service grows and leaves nothing better behind. Work is toil when it is:</p>
+    <div class="tw"><table><tbody>
+      <tr><td><b>Manual</b></td><td>a person has to do it</td></tr>
+      <tr><td><b>Repetitive</b></td><td>you've done it before and will again</td></tr>
+      <tr><td><b>Automatable</b></td><td>a machine could do it</td></tr>
+      <tr><td><b>Tactical</b></td><td>interrupt-driven and reactive, not planned</td></tr>
+      <tr><td><b>Without lasting value</b></td><td>the service is no better afterwards</td></tr>
+      <tr><td><b>Linear with growth</b></td><td>twice the traffic or customers means twice the work</td></tr>
+    </tbody></table></div>
+    <p>Not toil: <b>overhead</b> (meetings, planning, hiring) and <b>engineering</b> (work that permanently improves the system). SRE caps toil at <b>50%</b> of each person's time.</p>`},
+  {t:"widget", w:"toil", h:"Sort it: toil or not?",
+   intro:"Decide for each task. The explanation appears once you choose."},
+  {t:"text", h:"How the book says to reduce toil", html:`
+    <ul>
+      <li><b>Measure it first</b>: ticket counts, time tracking or a simple survey. You can't reduce what you can't see.</li>
+      <li><b>Engineer it out at the source</b> rather than writing scripts around it.</li>
+      <li><b>Reject the toil</b>: sometimes the right answer is to stop doing it.</li>
+      <li><b>Use SLOs</b> to decide which toil actually matters to users.</li>
+      <li><b>Start with a human-backed interface</b>, then automate behind it. A form that an engineer fulfills today can become fully automatic later.</li>
+      <li><b>Provide self-service</b> so other teams don't need to file tickets.</li>
+      <li><b>Increase uniformity</b>: fewer one-off configurations means less special handling.</li>
+      <li><b>Start small</b> and treat toil reduction as a feature worth planning.</li>
+    </ul>
+    <p>Common sources of toil the book lists: business processes, production interrupts, release shepherding, migrations, cost and capacity work, and troubleshooting opaque systems.</p>`},
+  {t:"text", h:"Simplicity (Chapter 7)", plain:"Every extra moving part is one more thing that can break at 3 a.m. The simplest system that does the job is usually the most reliable one.", html:`
+    <p>Complexity makes systems harder to reason about, and that causes outages. The book separates <b>essential</b> complexity (the problem really is hard) from <b>accidental</b> complexity (we made it harder than it needed to be). SRE's job is to remove the accidental kind.</p>
+    <ul>
+      <li>Watch for signs of complexity: how long new engineers take to learn the system, how long it takes to explain, how many different ways the same task gets done.</li>
+      <li>Push back on complexity in design reviews.</li>
+      <li>Regularly draw the end-to-end architecture. If it's hard to draw, it's hard to run.</li>
+      <li>Delete dead code, unused flags and deprecated features. Removing things counts as reliability work.</li>
+    </ul>`},
+  {t:"quiz", q:"Which is NOT a characteristic of toil?", o:[
+     "It's manual","It grows linearly as the service grows","It needs judgment and creativity and leaves a lasting improvement","It's repetitive"], a:2,
+   why:"Work that needs creativity and leaves the system permanently better is engineering, the opposite of toil. The aim is to move time from toil to engineering."}
+]},
+
+{ title:"On-call, incidents, postmortems", refs:["Ch 8","Ch 9","Ch 10","App C"], steps:[
+  {t:"text", h:"Sustainable on-call", plain:"On-call means being the person who gets called when something breaks. It has to be fair and survivable, or your best people burn out and leave.", html:`
+    <ul>
+      <li><b>Every page must be actionable.</b> If nobody needs to act, it shouldn't page anyone.</li>
+      <li><b>Keep the load manageable</b>: Google aims for at most about 2 incidents per 12-hour shift, so each one gets a proper response and follow-up.</li>
+      <li><b>Size the rotation properly</b>: at least 8 people at a single site, or 6 per site with two sites in different time zones. Fewer than that leads to burnout.</li>
+      <li><b>Compensate on-call time</b> and give people time off after a heavy shift.</li>
+      <li><b>Have playbooks</b> for known alerts, and fix the root cause of recurring pages instead of absorbing them.</li>
+    </ul>
+    <p>Track pages per shift, the percentage that were actionable, and time to mitigate.</p>`},
+  {t:"text", h:"Incident response: roles and the 3Cs", plain:"Think of a fire brigade. One person directs, some people fight the fire, and one person talks to the public. Nobody tries to do everything, so nothing gets forgotten.", html:`
+    <p>The book uses the <b>Incident Command System</b>, adapted from firefighting. In a serious incident, each role belongs to one named person:</p>
+    <div class="tw"><table><thead><tr><th>Role</th><th>Job</th></tr></thead><tbody>
+      <tr><td><b>Incident Commander</b></td><td>Coordinates, delegates, makes the calls and keeps the big picture. Doesn't debug.</td></tr>
+      <tr><td><b>Operations Lead</b></td><td>The only person (or team) changing production systems.</td></tr>
+      <tr><td><b>Communications Lead</b></td><td>Updates stakeholders and customers on a regular schedule.</td></tr>
+      <tr><td><b>Planning Lead</b></td><td>Tracks follow-up bugs and handoffs, and logs what happened.</td></tr>
+    </tbody></table></div>
+    <p>The <b>3Cs</b> it protects: <b>Coordinate</b> the response, <b>Communicate</b> clearly, keep <b>Control</b> of who changes what. Best practices: declare incidents early, stop the bleeding before looking for the root cause, keep one live incident document, and practice with drills.</p>`},
+  {t:"widget", w:"ics", h:"Assign the role",
+   intro:"An incident is under way: checkout is failing for 30% of customers. For each action, choose the role that should own it."},
+  {t:"text", h:"Blameless postmortems", plain:"Air crash investigators don't stop at “pilot error”. They ask why the cockpit made that error easy to make. Postmortems do the same for software: fix the system, not the person.", html:`
+    <p>A postmortem is a written record of an incident: what happened, why, and what will change. It's <b>blameless</b>: it assumes people acted reasonably with the information they had, and it looks for the gaps in systems and processes that let a mistake turn into an outage.</p>
+    <p><b>A good postmortem has:</b></p>
+    <ul>
+      <li>A clear summary and impact, ideally stated in error budget terms</li>
+      <li>A timeline, the root cause and trigger</li>
+      <li>What went well, what went poorly, and where you got lucky</li>
+      <li>Action items with an owner, a priority and a ticket, covering how to <i>prevent</i>, <i>detect</i> and <i>mitigate</i> it next time</li>
+    </ul>
+    <p><b>Warning signs of a bad one:</b> it names a person as the cause, its actions are vague ("be more careful"), or the action items have no owner.</p>
+    <p>Appendix C analyzes Google's own postmortems. Roughly <b>two-thirds of outages were triggered by binary or configuration pushes</b>. That's why the next module is about releasing safely.</p>`},
+  {t:"quiz", q:"Which postmortem statement is blameless and useful?", o:[
+     "Ravi pushed a bad config and should have tested it.",
+     "The config reached every region at once because the pipeline has no canary stage, and validation didn't check for empty allowlists.",
+     "Human error caused the outage.",
+     "The team needs to be more careful with config changes."], a:1,
+   why:"It names two system gaps (no canary stage, missing validation) that each produce a concrete action item. The other statements blame a person or ask people to 'be careful', which changes nothing."},
+  {t:"quiz", q:"During a major incident, the Incident Commander should mainly:", o:[
+     "Debug the root cause personally",
+     "Coordinate, delegate and keep the overall picture",
+     "Write the postmortem in real time",
+     "Handle customer calls"], a:1,
+   why:"Once the IC starts debugging, nobody is watching the overall response. Debugging belongs to the Ops Lead and customer updates to the Comms Lead."}
+]},
+
+{ title:"Ship safely, design for scale", refs:["Ch 11–17"], steps:[
+  {t:"text", h:"Canarying releases (Chapter 16)", plain:"Taste a spoonful before serving the whole pot. Give the new version to a few users first, compare it with the old one, and only then roll it out to everyone.", html:`
+    <p>Since most outages come from pushes, make every push safer. A <b>canary</b> release sends the new version to a small slice of traffic and compares it against a <b>control group</b> of the same size running the current version at the same time.</p>
+    <ul>
+      <li>Pick metrics that <b>indicate real problems</b>, <b>represent</b> user experience, and can be <b>attributed</b> to the change.</li>
+      <li>Evaluate automatically: compare canary to control, then promote or roll back.</li>
+      <li>Run the canary long enough to catch slow failures, and with enough traffic to be meaningful.</li>
+      <li>Watch for shared dependencies. A canary that corrupts a shared database hurts everyone.</li>
+    </ul>`},
+  {t:"text", h:"Configuration is code (Chapters 14–15)", plain:"Settings files break production as often as code does, so give them the same care: review, testing and gradual rollout.", html:`
+    <ul>
+      <li>Keep config in version control with review, validation, tests and gradual rollout, just like code.</li>
+      <li>Give users a small set of opinionated settings with safe defaults. Every extra setting is another way to break production.</li>
+      <li>Validate early against a schema, so a bad value fails at review time rather than in production.</li>
+      <li>Generate repetitive config from templates or a config language instead of copying and pasting it.</li>
+    </ul>`},
+  {t:"text", h:"Load and overload (Chapters 11 and 17)", plain:"When a restaurant is full, it's better to turn a few guests away at the door than to let everyone in and serve nobody. Software should do the same.", html:`
+    <ul>
+      <li><b>Know your limits</b>: load-test to find where each service breaks.</li>
+      <li><b>Shed load</b>: when overloaded, reject low-priority work first so important requests still succeed.</li>
+      <li><b>Degrade gracefully</b>: serve a cached or simpler response rather than an error.</li>
+      <li><b>Control retries</b>: use exponential backoff with jitter and retry budgets. Unlimited immediate retries turn a slowdown into a cascading failure.</li>
+      <li><b>Autoscale with limits</b>, and make sure dependencies can absorb the extra load.</li>
+    </ul>`},
+  {t:"text", h:"Non-abstract large system design (Chapter 12)", plain:"Before building, do the math on a napkin: how many users, how many requests, how many servers. A design that works on paper with real numbers is much more likely to work in real life.", html:`
+    <p>NALSD means designing on paper with <b>real numbers</b>: requests per second, bytes, machines, network. Instead of drawing boxes, you prove the design can work. The book's loop:</p>
+    <ol>
+      <li><b>Is it possible?</b> Design it for a single machine, ignoring limits.</li>
+      <li><b>Can we do better?</b> Improve the algorithm or data layout.</li>
+      <li><b>Is it feasible?</b> Scale it out within real hardware and budget limits.</li>
+      <li><b>Is it resilient?</b> Survive machine, zone and dependency failures.</li>
+      <li><b>Can we do better?</b> Repeat.</li>
+    </ol>
+    <p>Chapter 13 applies the same thinking to data pipelines: freshness and correctness SLOs, idempotent stages, data validation and planning for dependency failures.</p>`},
+  {t:"quiz", q:"In a canary release, what do you compare the new version against?", o:[
+     "Last week's metrics",
+     "A control group of similar size running the current version at the same time",
+     "Synthetic tests only",
+     "The SLO alone"], a:1,
+   why:"A control group running at the same time cancels out time-of-day traffic, other incidents and seasonality, so any difference you see comes from the change."},
+  {t:"quiz", q:"A dependency slows down, and every client immediately retries 3 times. What's the risk?", o:[
+     "None; retries improve reliability",
+     "A retry storm that multiplies load and causes a cascading failure",
+     "Lower latency",
+     "Higher availability"], a:1,
+   why:"Three immediate retries can quadruple the load on a service that's already struggling. Backoff with jitter and a retry budget stop this from spreading."}
+]},
+
+{ title:"SRE in the organization", refs:["Ch 18","Ch 19","Ch 20","Ch 21"], steps:[
+  {t:"text", h:"The SRE role: scope and objectives", plain:"SRE is the team that keeps the product reliable enough for users, while letting the product team ship as fast as is safe.", html:`
+    <p><b>Mission:</b> keep user-facing reliability at the agreed SLO while letting product teams ship as fast as the error budget allows, mainly through engineering rather than manual work.</p>
+    <div class="tw"><table><thead><tr><th>SRE owns</th><th>Shared with developers</th><th>Not SRE's job</th></tr></thead><tbody>
+      <tr><td>SLI/SLO framework, monitoring and alerting, incident process, postmortem culture, capacity planning, release safety tooling, toil reduction, production readiness reviews</td>
+          <td>On-call (developers take part), SLO targets (with product), architecture decisions, follow-up from postmortems</td>
+          <td>Fixing every product bug, running services they're not allowed to push back on, being a ticket queue</td></tr>
+    </tbody></table></div>
+    <p><b>How SRE is measured:</b> SLO attainment, how the budget was spent, toil percentage, pages per shift, postmortem action items closed, and the trend in time to mitigate.</p>`},
+  {t:"text", h:"The engagement model (Chapter 18)", plain:"Like a specialist doctor: they examine a patient before taking them on, work with them over time, and can send them back if the treatment plan isn't followed.", html:`
+    <p>SRE support is a deliberate agreement, not something every service gets by default.</p>
+    <ul>
+      <li><b>Production Readiness Review (PRR)</b>: before SRE takes a service on, it's checked for SLOs, monitoring, runbooks, capacity and failure handling.</li>
+      <li><b>Setting up the relationship</b>: share business and production priorities, identify risks, agree on goals, and set ground rules (SLOs and an error budget policy).</li>
+      <li><b>Keeping it healthy</b>: regular reviews, re-planning when SLOs slip, and SREs taking part in product planning.</li>
+      <li><b>Ending it</b>: if a service is chronically out of SLO or generates too much toil, SRE can <b>hand the pager back</b> to the developers. This keeps incentives aligned: developers feel the cost of unreliable code.</li>
+    </ul>`},
+  {t:"text", h:"Beyond your walls (Chapter 19)", html:`
+    <p>This chapter is about platforms, which matters for any company whose customers build on its product. The book's core beliefs:</p>
+    <ul>
+      <li>Reliability is the most important feature.</li>
+      <li>Your users decide your reliability, not your monitoring.</li>
+      <li>If you run a platform, reliability is a partnership with your customers.</li>
+      <li>Everything important eventually becomes a platform.</li>
+      <li>When your customers are struggling, you have to slow down.</li>
+      <li>You'll need to practice SRE with your customers: share SLIs, plan observability together, rehearse incidents together. Google calls this Customer Reliability Engineering (CRE).</li>
+    </ul>`,
+   tip:"If you sell infrastructure, such as payments, hosting or an API other businesses build on, your customers' SLOs depend on yours. Publishing your SLIs and agreeing on joint incident procedures is part of the product."},
+  {t:"widget", w:"lifecycle", h:"Where is your organization? (Chapter 20)", plain:"You don't need an SRE team to start. Most companies adopt the habits first and hire specialists once the work justifies it.",
+   intro:"The book describes SRE adoption in stages. Pick the one closest to where you are to see what comes next."},
+  {t:"text", h:"Managing the change (Chapter 21)", plain:"Bringing in SRE changes habits, and habits change slowly. Start small, prove it works, then grow.", html:`
+    <p>Adopting SRE changes how teams work, and the book treats it as organizational change. It reviews several established models:</p>
+    <div class="tw"><table><tbody>
+      <tr><td><b>Lewin</b></td><td>Unfreeze → change → refreeze</td></tr>
+      <tr><td><b>McKinsey 7-S</b></td><td>Strategy, structure, systems, shared values, style, staff, skills must line up</td></tr>
+      <tr><td><b>Kotter's 8 steps</b></td><td>Create urgency, build a coalition, form a vision, … make it stick</td></tr>
+      <tr><td><b>Prosci ADKAR</b></td><td>Awareness, Desire, Knowledge, Ability, Reinforcement</td></tr>
+      <tr><td><b>Emotion-based models</b></td><td>Help people through the transition, not just the process</td></tr>
+      <tr><td><b>Deming (PDCA)</b></td><td>Plan, do, check, act, then repeat</td></tr>
+    </tbody></table></div>
+    <p><b>In practice:</b> start with one pilot service, show results with data (budget spent, pages reduced), get an executive sponsor to sign the error budget policy, then expand team by team.</p>`},
+  {t:"quiz", q:"A team's service is chronically out of SLO and the team ignores the error budget policy. Under the engagement model, SRE can:", o:[
+     "Work weekends to cover the gap",
+     "Hand the pager back to the developers until the service meets the agreed standards",
+     "Quietly lower the SLO",
+     "Set up a separate ops team for it"], a:1,
+   why:"Handing back the pager is the model's enforcement mechanism. Without it, SRE becomes the team that absorbs whatever unreliable code it's given."},
+  {t:"quiz", q:"For a startup with about 10 engineers, which stage does the book's lifecycle suggest starting from?", o:[
+     "Hire a full SRE team of 8",
+     "SRE practices without SREs: developers adopt SLOs, postmortems and on-call themselves",
+     "Outsource on-call entirely",
+     "Skip SLOs until you reach Series B"], a:1,
+   why:"The practices are what deliver the value, not the job title. Small teams get most of the benefit by adopting SLOs, error budgets and postmortems first, then hiring dedicated SREs once the load justifies it."}
+]},
+
+{ title:"Final review", refs:["Whole book"], steps:[
+  {t:"text", h:"How it all connects", plain:"Decide what “working” means for users, measure it, and set a goal. Then let the gap between that goal and perfection decide when to ship and when to fix.", wide:true, html:`
+    <p>The whole book follows one loop. Each step feeds the next:</p>
+    <div class="chain">
+      <span>User journey</span><b>→</b><span class="k">SLI</span><b>→</b><span class="k">SLO</span><b>→</b><span class="k">Error budget</span><b>→</b><span>Budget policy</span><b>→</b><span>Burn-rate alerts</span><b>→</b><span>Incident response</span><b>→</b><span>Blameless postmortem</span><b>→</b><span>Engineering work: less toil, canaries, simpler design</span><b>↺</b>
+    </div>
+    <p>Organizationally, the engagement model and team lifecycle decide <b>who</b> runs this loop, and change management decides <b>how</b> it spreads across the company.</p>`},
+  {t:"text", h:"Cheat sheet", wide:true, html:`
+    <dl class="glo">
+      <dt>SLI</dt><dd>A measurement of user-facing behavior: good events ÷ valid events.</dd>
+      <dt>SLO</dt><dd>An internal target for an SLI over a window, e.g. 99.9% over 28 days.</dd>
+      <dt>SLA</dt><dd>A customer contract with penalties. Always looser than the SLO.</dd>
+      <dt>Error budget</dt><dd>1 − SLO. The amount of failure you're allowed, and meant to spend.</dd>
+      <dt>Budget policy</dt><dd>A signed agreement on what happens when the budget runs out (usually a release freeze).</dd>
+      <dt>Burn rate</dt><dd>Error rate ÷ (1 − SLO). 1 means on track; 14.4 means the budget is gone in about 2 days.</dd>
+      <dt>Toil</dt><dd>Manual, repetitive, automatable work that grows with the service. Capped at 50%.</dd>
+      <dt>PRR</dt><dd>Production Readiness Review, required before SRE takes on a service.</dd>
+      <dt>ICS</dt><dd>Incident roles: Commander, Ops, Comms, Planning. Protects the 3Cs.</dd>
+      <dt>Postmortem</dt><dd>A blameless record of an incident with owned action items.</dd>
+      <dt>Canary</dt><dd>A small release compared against a control group before full rollout.</dd>
+      <dt>NALSD</dt><dd>Designing systems with real numbers, then iterating.</dd>
+    </dl>`},
+  {t:"quiz", q:"Which chain correctly links the core concepts?", o:[
+     "SLA → SLO → SLI → alert",
+     "SLI measures → SLO sets the target → error budget = 1 − SLO → policy and burn-rate alerts act on it",
+     "Alert → incident → SLO → SLI",
+     "Error budget → SLA → toil → SLI"], a:1,
+   why:"Measurement comes first, then the target, then the allowed failure, then the rules and alerts built on that allowance. Everything else in the book builds on this chain."},
+  {t:"quiz", q:"Where should a new SRE program put its first month of effort?", o:[
+     "Buying an observability platform",
+     "Defining SLIs and SLOs for 2–3 critical user journeys and getting an error budget policy signed",
+     "Writing runbooks for every alert",
+     "Hiring an SRE manager"], a:1,
+   why:"Everything else (alerts, incident priorities, release decisions, toil priorities) depends on SLOs and a policy with real authority. Tools and headcount come after."},
+  {t:"widget", w:"results", h:"Your results and next steps",
+   intro:"Here's how you did, and a starter checklist for putting the book into practice. Tick items off as you go."}
+]}
+];
+
+/* ---------- state ---------- */
+const KEY="sre-workbook-course-v1";
+let S={m:0,s:0,seen:{},ans:{},w:{}};
+try{const raw=localStorage.getItem(KEY); if(raw){const p=JSON.parse(raw); if(p&&typeof p==="object") S=Object.assign(S,p);}}catch(e){}
+if(!M[S.m]) S.m=0; if(!M[S.m].steps[S.s]) S.s=0;
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+const $=(sel,el)=> (el||document).querySelector(sel);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt=(n,d)=>Number(n).toLocaleString("en-US",{maximumFractionDigits:d==null?0:d,minimumFractionDigits:d==null?0:d});
+const total=M.reduce((a,m)=>a+m.steps.length,0);
+
+function fmtDur(min){
+  if(!isFinite(min)) return "never";
+  if(min<1) return fmt(min*60)+" s";
+  if(min<90) return fmt(min,min<10?1:0)+" min";
+  const h=min/60; if(h<48) return fmt(h,1)+" h";
+  return fmt(h/24,1)+" days";
+}
+
+/* ---------- shell ---------- */
+function renderRail(){
+  const rail=$("#rail");
+  rail.innerHTML='<div class="lbl">Modules</div>'+M.map((m,i)=>{
+    const n=m.steps.length, seen=m.steps.filter((_,j)=>S.seen[i+"-"+j]).length;
+    const cls=["mod"]; if(i===S.m) cls.push("on"); if(seen===n) cls.push("done");
+    return `<button class="${cls.join(" ")}" data-m="${i}" type="button" ${i===S.m?'aria-current="true"':''}><span class="n">${i}</span><span class="t">${esc(m.title)}</span><span class="c">${seen}/${n}</span></button>`;
+  }).join("");
+  rail.querySelectorAll(".mod").forEach(b=>b.onclick=()=>{S.m=+b.dataset.m;S.s=0;go();});
+  const seenAll=Object.keys(S.seen).length, pct=Math.round(seenAll/total*100);
+  $("#progTxt").textContent=pct+"% · "+seenAll+"/"+total+" steps";
+  $("#progBar").style.width=pct+"%";
+}
+
+function renderLesson(){
+  const m=M[S.m], st=m.steps[S.s], L=$("#lesson");
+  S.seen[S.m+"-"+S.s]=1;
+  const kind=st.t==="quiz"?"Checkpoint":st.t==="widget"?"Hands-on":"Lesson";
+  L.innerHTML=`
+    <div class="eyebrow">Module ${S.m} of ${M.length-1}</div>
+    <h2 class="mtitle">${esc(m.title)}</h2>
+    <div class="refs">${m.refs.map(r=>`<span class="ref">Book · ${esc(r)}</span>`).join("")}</div>
+    <div class="dots" role="tablist" aria-label="Steps">${m.steps.map((_,j)=>`<button class="dot ${j===S.s?"cur":S.seen[S.m+"-"+j]?"seen":""}" data-s="${j}" type="button" aria-label="Step ${j+1}"></button>`).join("")}</div>
+    <article class="card">
+      <div class="steptype">${kind} · step ${S.s+1} of ${m.steps.length}</div>
+      <div id="stepBody"></div>
+    </article>
+    <div class="controls">
+      <button class="btn" id="back" type="button" ${S.m===0&&S.s===0?"disabled":""}>← Back</button>
+      <span class="stepcount">${S.m}.${S.s+1}</span>
+      <button class="btn primary" id="next" type="button">${S.s<m.steps.length-1?"Next →":S.m<M.length-1?"Next module →":"Back to start"}</button>
+    </div>`;
+  const B=$("#stepBody");
+  if(st.t==="text"){
+    B.innerHTML=`<h3>${esc(st.h)}</h3>${plain(st.plain)}<div class="body ${st.wide?"wide":""}">${st.html}</div>${tip(st.tip)}`;
+  } else if(st.t==="quiz"){
+    renderQuiz(B,st,S.m+"-"+S.s);
+  } else {
+    B.innerHTML=`<h3>${esc(st.h)}</h3>${plain(st.plain)}<div class="body wide"><p style="max-width:72ch">${esc(st.intro)}</p><div class="w" id="wbox"></div></div>${tip(st.tip)}`;
+    W[st.w]($("#wbox"));
+  }
+  L.querySelectorAll(".dot").forEach(d=>d.onclick=()=>{S.s=+d.dataset.s;go();});
+  $("#back").onclick=()=>{ if(S.s>0)S.s--; else if(S.m>0){S.m--;S.s=M[S.m].steps.length-1;} go(); };
+  $("#next").onclick=()=>{ if(S.s<m.steps.length-1)S.s++; else if(S.m<M.length-1){S.m++;S.s=0;} else {S.m=0;S.s=0;} go(); };
+}
+function plain(t){return t?`<div class="plain"><span class="who">In plain words</span><p>${esc(t)}</p></div>`:"";}
+function tip(t){return t?`<div class="tutor"><span class="who">Tutor</span><p>${esc(t)}</p></div>`:"";}
+
+function renderQuiz(B,st,key){
+  const chosen=S.ans[key];
+  B.innerHTML=`<div class="body"><p class="q">${esc(st.q)}</p><div class="opts">${st.o.map((o,i)=>{
+      let c="opt"; if(chosen!=null){ if(i===st.a)c+=" right"; else if(i===chosen)c+=" wrong"; }
+      return `<button class="${c}" data-i="${i}" type="button" ${chosen!=null?"disabled":""}><span class="k">${"ABCD"[i]}</span><span>${esc(o)}</span></button>`;}).join("")}</div>
+    ${chosen!=null?`<div class="fb ${chosen===st.a?"ok":"no"}"><b>${chosen===st.a?"Correct.":"Not quite. The answer is "+"ABCD"[st.a]+"."}</b>${esc(st.why)}</div>`:`<p style="color:var(--muted);font-size:14px">Pick one. Your first answer is the one that counts.</p>`}</div>`;
+  B.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{ if(S.ans[key]!=null)return; S.ans[key]=+b.dataset.i; save(); renderQuiz(B,st,key); renderRail(); });
+}
+
+function go(){ renderLesson(); renderRail(); save(); window.scrollTo({top:0,behavior:"smooth"}); }
+
+/* ---------- widgets ---------- */
+const W={};
+
+W.principles=function(el){
+  const P=[
+    ["Operations is a software problem","SREs write code to run systems: automation, tooling, self-healing.","An ops team renamed 'SRE' that still works ticket by ticket."],
+    ["Manage by service levels","Explicit SLOs agreed with product, below 100%.","'Five nines everywhere', or no target at all."],
+    ["Work to minimize toil","Toil capped at 50% of time and measured.","Heroes running the same scripts by hand at 2 a.m. every week."],
+    ["Automate this year's job away","Each year the same work takes less human time.","Ops headcount grows with every new service."],
+    ["Move fast by reducing the cost of failure","Canaries, quick rollback, small changes, low time to mitigate.","Big quarterly releases with change freezes around them."],
+    ["Share ownership with developers","Developers join on-call, and SRE can hand the pager back.","Code thrown over the wall to ops."],
+    ["Use the same tooling regardless of title","One deploy pipeline and one observability stack for everyone.","Ops keeps its own scripts repo that no developer uses."]
+  ];
+  S.w.pr=S.w.pr||{};
+  el.innerHTML=`<div class="grid2">${P.map((p,i)=>`<div class="pc"><h4>${i+1}. ${esc(p[0])}</h4>
+    ${S.w.pr[i]?`<div class="more"><span class="tag g">In practice</span><span>${esc(p[1])}</span><span class="tag b">Anti-pattern</span><span>${esc(p[2])}</span></div>`:`<button class="link" data-i="${i}" type="button">Show in practice →</button>`}</div>`).join("")}</div>
+    <p style="font-size:13.5px;color:var(--muted)">${Object.keys(S.w.pr).length} of 7 opened</p>`;
+  el.querySelectorAll(".link").forEach(b=>b.onclick=()=>{S.w.pr[b.dataset.i]=1;save();W.principles(el);});
+};
+
+W.slicalc=function(el){
+  const v=S.w.sli||{valid:1200000,bad:900,slow:450};
+  el.innerHTML=`<div class="fields">
+      <div class="field"><label for="sv">Valid requests (excluding health checks)</label><input id="sv" type="number" min="1" value="${v.valid}"></div>
+      <div class="field"><label for="sb">Failed requests (5xx, timeouts)</label><input id="sb" type="number" min="0" value="${v.bad}"></div>
+      <div class="field"><label for="ss">Successful but slower than 300 ms</label><input id="ss" type="number" min="0" value="${v.slow}"></div>
+    </div><div id="sout"></div>`;
+  const calc=()=>{
+    const valid=Math.max(1,+$("#sv",el).value||1), bad=Math.max(0,+$("#sb",el).value||0), slow=Math.max(0,+$("#ss",el).value||0);
+    S.w.sli={valid,bad,slow}; save();
+    const good=Math.max(0,valid-bad-slow), sli=good/valid*100, avail=(valid-bad)/valid*100;
+    const ok=sli>=99.9, allowed=valid*0.001, used=(valid-good)/allowed*100;
+    $("#sout",el).innerHTML=`<div class="stats">
+      <div class="stat"><div class="v">${fmt(good)}</div><div class="l">good events (fast and successful)</div></div>
+      <div class="stat"><div class="v">${fmt(sli,3)}%</div><div class="l">SLI = good ÷ valid</div></div>
+      <div class="stat"><div class="v">${fmt(avail,3)}%</div><div class="l">availability alone (ignoring latency)</div></div>
+      <div class="stat"><div class="v">${fmt(used,0)}%</div><div class="l">of a 99.9% day's error budget used</div></div></div>
+      <div class="notice ${ok?"ok":"bad"}">${ok?"Meets the 99.9% target.":"Misses the 99.9% target."} Notice that slow responses count as bad: they succeeded, but users still waited.</div>`;
+  };
+  el.querySelectorAll("input").forEach(i=>i.oninput=calc); calc();
+};
+
+W.nines=function(el){
+  const v=S.w.n||{slo:99.9,win:28,rpd:1000000};
+  const slos=[99,99.5,99.9,99.95,99.99,99.999], wins=[7,28,30,90];
+  el.innerHTML=`<div><div class="wlabel">SLO target</div><div class="seg" id="nslo">${slos.map(s=>`<button type="button" data-v="${s}" class="${s===v.slo?"on":""}">${s}%</button>`).join("")}</div></div>
+    <div class="fields"><div class="field"><label>Window</label><div class="seg" id="nwin">${wins.map(w=>`<button type="button" data-v="${w}" class="${w===v.win?"on":""}">${w} days</button>`).join("")}</div></div>
+    <div class="field"><label for="nrpd">Requests per day</label><input id="nrpd" type="number" min="1" value="${v.rpd}"></div></div>
+    <div id="nout"></div>`;
+  const draw=()=>{
+    const b=1-v.slo/100, mins=v.win*1440*b, reqs=v.rpd*v.win*b;
+    $("#nout",el).innerHTML=`<div class="stats">
+      <div class="stat"><div class="v">${fmt(b*100,3)}%</div><div class="l">error budget (1 − SLO)</div></div>
+      <div class="stat"><div class="v">${fmtDur(mins)}</div><div class="l">of complete outage allowed per ${v.win} days</div></div>
+      <div class="stat"><div class="v">${fmt(reqs)}</div><div class="l">failed requests allowed per ${v.win} days</div></div></div>
+      <div class="tw"><table><thead><tr><th>SLO</th><th>Outage allowed per ${v.win} days</th><th>Failed requests per 1M</th></tr></thead><tbody>
+      ${slos.map(s=>`<tr${s===v.slo?' style="background:var(--accent-soft)"':''}><td class="num">${s}%</td><td class="num">${fmtDur(v.win*1440*(1-s/100))}</td><td class="num">${fmt(1e6*(1-s/100))}</td></tr>`).join("")}
+      </tbody></table></div>`;
+  };
+  el.querySelectorAll("#nslo button").forEach(b=>b.onclick=()=>{v.slo=+b.dataset.v;S.w.n=v;save();W.nines(el);});
+  el.querySelectorAll("#nwin button").forEach(b=>b.onclick=()=>{v.win=+b.dataset.v;S.w.n=v;save();W.nines(el);});
+  $("#nrpd",el).oninput=e=>{v.rpd=Math.max(1,+e.target.value||1);S.w.n=v;save();draw();};
+  draw();
+};
+
+W.matrix=function(el){
+  const v=S.w.mx||{met:1,toil:0,sat:0};
+  const R={
+    "1-0-1":"Relax release and deployment processes to ship faster, or step back from this service and focus on less reliable ones.",
+    "1-0-0":"Tighten the SLO. You're meeting a target that doesn't reflect what users experience.",
+    "1-1-1":"If alerts produce false positives, make them less sensitive. Otherwise loosen the SLO temporarily (or offload toil) while you fix the product or automate mitigation.",
+    "1-1-0":"Tighten the SLO. Users are unhappy even though you're meeting the target.",
+    "0-0-1":"Loosen the SLO. Users are happy even though you're missing it, so the target is stricter than they need.",
+    "0-0-0":"Make alerting more sensitive. You're missing the SLO without noticing.",
+    "0-1-1":"Loosen the SLO. Users are satisfied and the target is costing heavy toil.",
+    "0-1-0":"Offload toil and fix the product, and/or improve automated fault mitigation."
+  };
+  const seg=(k,a,b)=>`<div class="seg">${[[1,a],[0,b]].map(([x,l])=>`<button type="button" data-k="${k}" data-v="${x}" class="${v[k]===x?"on":""}">${l}</button>`).join("")}</div>`;
+  el.innerHTML=`<div class="fields">
+      <div class="field"><label>SLO</label>${seg("met","Met","Missed")}</div>
+      <div class="field"><label>Toil</label>${seg("toil","High","Low")}</div>
+      <div class="field"><label>Customer satisfaction</label>${seg("sat","High","Low")}</div></div>
+    <div class="detail"><div class="wlabel">Recommended action</div><p style="font-size:17px">${esc(R[v.met+"-"+v.toil+"-"+v.sat])}</p></div>`;
+  el.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{v[b.dataset.k]=+b.dataset.v;S.w.mx=v;save();W.matrix(el);});
+};
+
+W.budgetsim=function(el){
+  const BUDGET=10000, RPM=10000000/(28*1440);
+  const EV=[
+    {id:"deploy",n:"Bad deploy, rolled back",d:"5% errors for 30 min",f:RPM*30*0.05},
+    {id:"latency",n:"Latency regression",d:"2% of requests over 300 ms for 6 h",f:RPM*360*0.02},
+    {id:"dep",n:"Payment provider outage",d:"100% errors for 10 min",f:RPM*10*1},
+    {id:"slow",n:"Slow rollback after bad config",d:"20% errors for 2 h",f:RPM*120*0.2}
+  ];
+  const st=S.w.bs||(S.w.bs={log:[]});
+  const used=st.log.reduce((a,x)=>a+x.f,0), pct=used/BUDGET*100;
+  const state=pct>=100?"bad":pct>=50?"warn":"ok";
+  const label={ok:"Within budget: ship normally",warn:"Over half spent: slow down risky launches",bad:"Budget exhausted: release freeze"}[state];
+  const big=st.log.filter(x=>x.f/BUDGET>0.2);
+  el.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+      <span class="pill ${state}">${label}</span><span class="mono" style="color:var(--muted)">${fmt(used)} / ${fmt(BUDGET)} failed requests</span></div>
+    <div class="meter ${pct>=100?"over":""}" role="img" aria-label="${fmt(Math.min(pct,999))}% of error budget used"><i style="width:${Math.min(100,pct)}%"></i></div>
+    <div class="stats"><div class="stat"><div class="v">${fmt(pct,1)}%</div><div class="l">budget used</div></div>
+      <div class="stat"><div class="v">${fmt(Math.max(0,BUDGET-used))}</div><div class="l">failed requests left</div></div>
+      <div class="stat"><div class="v">${fmtDur(Math.max(0,BUDGET-used)/RPM)}</div><div class="l">of full outage left</div></div></div>
+    <div><div class="wlabel" style="margin-bottom:6px">Trigger an incident</div><div class="evbtns">${EV.map(e=>`<button class="evbtn" type="button" data-id="${e.id}"><b>${esc(e.n)}</b><small>${esc(e.d)} · costs ${fmt(e.f/BUDGET*100,1)}%</small></button>`).join("")}
+      <button class="evbtn" type="button" data-id="ship"><b>Ship a feature release</b><small>no errors if all goes well</small></button></div></div>
+    <div id="bmsg"></div>
+    ${big.length?`<div class="notice warn"><b>Policy:</b> ${big.length} incident${big.length>1?"s":""} used more than 20% of the budget. Each needs a postmortem with at least one P0 action item.</div>`:""}
+    ${st.log.length?`<div class="log">${st.log.map(x=>`<div><span>${esc(x.n)}</span><span class="num">−${fmt(x.f)} (${fmt(x.f/BUDGET*100,1)}%)</span></div>`).join("")}</div>
+    <div><button class="btn" type="button" id="breset">Reset month</button></div>`:""}`;
+  el.querySelectorAll(".evbtn").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.id;
+    if(id==="ship"){
+      const msg=state==="bad"?`<div class="notice bad"><b>Blocked by the error budget policy.</b> The budget is exhausted, so only P0 bug fixes and security fixes can ship until the service is back within its SLO.</div>`
+        :state==="warn"?`<div class="notice warn"><b>Shipped, with care.</b> More than half the budget is gone, so many teams add extra canary time or hold back risky changes at this point.</div>`
+        :`<div class="notice ok"><b>Shipped.</b> Plenty of budget left. This is what the budget is for.</div>`;
+      $("#bmsg",el).innerHTML=msg; return;
+    }
+    const e=EV.find(x=>x.id===id); st.log.push({n:e.n,f:e.f}); save(); W.budgetsim(el);
+  });
+  const r=$("#breset",el); if(r) r.onclick=()=>{st.log=[];save();W.budgetsim(el);};
+};
+
+W.burn=function(el){
+  const v=S.w.br||{slo:99.9,pos:50};
+  const slos=[99,99.5,99.9,99.99];
+  const errFromPos=p=>Math.pow(10,-2+p/100*3.3); // 0.01% .. ~20%
+  el.innerHTML=`<div><div class="wlabel">SLO</div><div class="seg" id="bslo">${slos.map(s=>`<button type="button" data-v="${s}" class="${s===v.slo?"on":""}">${s}%</button>`).join("")}</div></div>
+    <div class="field"><label for="brr">Current error rate: <b class="mono" id="berr"></b></label><input id="brr" type="range" min="0" max="100" step="1" value="${v.pos}"></div>
+    <div id="bout"></div>`;
+  const draw=()=>{
+    const err=errFromPos(v.pos), budget=100-v.slo, burn=err/budget, hrs=720/burn, onehr=burn/720*100;
+    $("#berr",el).textContent=fmt(err,err<0.1?3:2)+"%";
+    const rows=[[14.4,"1 h + 5 min","2% of budget","Page"],[6,"6 h + 30 min","5% of budget","Page"],[1,"3 days + 6 h","10% of budget","Ticket"]];
+    $("#bout",el).innerHTML=`<div class="stats">
+      <div class="stat"><div class="v">${fmt(burn,burn<10?2:1)}×</div><div class="l">burn rate = ${fmt(err,err<0.1?3:2)}% ÷ ${fmt(budget,budget<0.1?2:1)}%</div></div>
+      <div class="stat"><div class="v">${fmtDur(hrs*60)}</div><div class="l">until a 30-day budget is gone</div></div>
+      <div class="stat"><div class="v">${fmt(onehr,onehr<1?2:1)}%</div><div class="l">of the budget used per hour</div></div></div>
+      <div class="tw"><table><thead><tr><th>Alert</th><th>Windows</th><th>Threshold</th><th>Status</th></tr></thead><tbody>
+      ${rows.map(r=>{const f=burn>=r[0];return `<tr><td>${r[3]} · ${r[2]}</td><td class="num">${r[1]}</td><td class="num">≥ ${r[0]}×</td><td>${f?`<span class="pill ${r[3]==="Page"?"bad":"warn"}">Firing: ${r[3].toLowerCase()}</span>`:`<span class="pill off">Quiet</span>`}</td></tr>`;}).join("")}
+      </tbody></table></div>`;
+  };
+  el.querySelectorAll("#bslo button").forEach(b=>b.onclick=()=>{v.slo=+b.dataset.v;S.w.br=v;save();W.burn(el);});
+  $("#brr",el).oninput=e=>{v.pos=+e.target.value;S.w.br=v;save();draw();};
+  draw();
+};
+
+W.toil=function(el){
+  const T=[
+    ["Manually resetting a customer's API key every time they open a ticket",1,"Manual, repetitive, triggered by interrupts, and it grows with the number of customers. Make it self-service."],
+    ["Writing a tool that renews TLS certificates automatically",0,"Engineering. It permanently removes a category of toil."],
+    ["Weekly team planning meeting",0,"Overhead, not toil. It's necessary and doesn't grow with traffic."],
+    ["Restarting a service by hand a few times a week because of a memory leak",1,"Classic toil. Fix the leak, or at least automate the restart while the fix is scheduled."],
+    ["Writing the postmortem for last week's outage",0,"It leaves lasting value: lessons learned and action items."],
+    ["Copying release notes by hand and clicking through the deploy pipeline every release",1,"Release shepherding is one of the toil sources the book names. Automate the pipeline."],
+    ["Building next year's capacity model",0,"Planned engineering work with lasting value."],
+    ["Onboarding each new enterprise customer by editing YAML by hand",1,"Grows with the number of customers. A self-service onboarding API removes it."]
+  ];
+  S.w.tl=S.w.tl||{};
+  const done=Object.keys(S.w.tl).length, right=Object.entries(S.w.tl).filter(([i,a])=>T[i][1]===a).length;
+  el.innerHTML=`<div class="sort">${T.map((t,i)=>{const a=S.w.tl[i];const has=a!=null;const ok=has&&a===t[1];
+      return `<div class="sitem ${has?(ok?"right":"wrong"):""}"><span class="txt">${esc(t[0])}</span>
+      <div class="seg">${has?`<span class="pill ${ok?"ok":"bad"}">${t[1]?"Toil":"Not toil"}</span>`:`<button type="button" data-i="${i}" data-v="1">Toil</button><button type="button" data-i="${i}" data-v="0">Not toil</button>`}</div>
+      ${has?`<span class="why">${ok?"Correct. ":"Not quite. "}${esc(t[2])}</span>`:""}</div>`;}).join("")}</div>
+    <p style="font-size:14px;color:var(--muted)">${done}/${T.length} sorted${done?` · ${right} correct`:""}</p>`;
+  el.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{S.w.tl[b.dataset.i]=+b.dataset.v;save();W.toil(el);});
+};
+
+W.ics=function(el){
+  const roles=["Commander","Ops","Comms","Planning"];
+  const A=[
+    ["Posts a customer status-page update every 30 minutes",2,"The Comms Lead owns external and stakeholder updates, so responders aren't interrupted."],
+    ["Rolls the checkout service back to the previous version",1,"Only the Ops Lead changes production. This avoids two people making conflicting changes."],
+    ["Decides to escalate and bring in the database team",0,"Escalation and staffing are the Commander's decisions."],
+    ["Files follow-up bugs and arranges the 8 p.m. shift handoff",3,"The Planning Lead handles the longer-running work so the others can stay on mitigation."],
+    ["Asks every 15 minutes: what's our current mitigation and who owns it?",0,"Keeping the overall picture and the ownership clear is the Commander's main job."],
+    ["Drains the bad node pool",1,"A hands-on change to systems belongs to the Ops Lead."]
+  ];
+  S.w.ic=S.w.ic||{};
+  el.innerHTML=`<div class="sort">${A.map((x,i)=>{const a=S.w.ic[i];const has=a!=null;const ok=has&&a===x[1];
+      return `<div class="sitem ${has?(ok?"right":"wrong"):""}"><span class="txt">${esc(x[0])}</span>
+      <div class="seg">${has?`<span class="pill ${ok?"ok":"bad"}">${roles[x[1]]}</span>`:roles.map((r,j)=>`<button type="button" data-i="${i}" data-v="${j}">${r}</button>`).join("")}</div>
+      ${has?`<span class="why">${ok?"Correct. ":"It's "+roles[x[1]]+". "}${esc(x[2])}</span>`:""}</div>`;}).join("")}</div>`;
+  el.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{S.w.ic[b.dataset.i]=+b.dataset.v;save();W.ics(el);});
+};
+
+W.lifecycle=function(el){
+  const L=[
+    ["SRE practices without SREs","Developers adopt SLOs, error budgets, blameless postmortems and on-call. There's no SRE title yet, but the habits start here.",
+      ["Write SLOs for 2–3 critical user journeys","Get an error budget policy signed by leadership","Adopt a postmortem template and incident roles","Track toil for two weeks to find your first automation targets"]],
+    ["First SRE role","One dedicated person, usually an engineer with both operations and software skills, placed close to the most critical service.",
+      ["Give them a clear charter: SLOs, alerting, toil reduction","Protect at least half of their time for engineering","Set up burn-rate alerting and a PRR checklist","Don't make them the only person on call"]],
+    ["First SRE team","The team goes through forming, storming, norming and performing (Tuckman's stages) as it settles its charter and engagement model.",
+      ["Write the team charter and engagement model","Staff on-call properly: 8 people at one site, or 6 per site across two","Run PRRs before taking on new services","Report error budget spend and toil to leadership"]],
+    ["Many SRE teams","Teams split by service complexity or geography. Shared practices keep them consistent.",
+      ["Set up rotations and exchanges between teams","Run shared training and production excellence reviews","Fund horizontal projects on common tooling","Tie SRE funding and headcount to engagement agreements"]]
+  ];
+  const v=S.w.lc==null?0:S.w.lc;
+  el.innerHTML=`<div class="stages">${L.map((s,i)=>`<button type="button" class="stage ${i===v?"on":""}" data-i="${i}"><span class="s">Stage ${i+1}</span><b>${esc(s[0])}</b></button>`).join("")}</div>
+    <div class="detail"><p>${esc(L[v][1])}</p><div class="wlabel">What to do at this stage</div><ul>${L[v][2].map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`;
+  el.querySelectorAll(".stage").forEach(b=>b.onclick=()=>{S.w.lc=+b.dataset.i;save();W.lifecycle(el);});
+};
+
+W.results=function(el){
+  let tot=0,right=0,answered=0; const rows=[];
+  M.forEach((m,i)=>{let q=0,r=0,a=0; m.steps.forEach((s,j)=>{ if(s.t!=="quiz")return; q++; const x=S.ans[i+"-"+j]; if(x!=null){a++; if(x===s.a)r++;} });
+    if(q){tot+=q;right+=r;answered+=a;rows.push([i,m.title,q,a,r,m.refs.join(", ")]);}});
+  const C=["Pick the 2–3 user journeys that matter most to your customers",
+    "Write an SLI specification and implementation for each",
+    "Set SLOs over a rolling 28-day window",
+    "Write an error budget policy and get it signed by product, engineering and leadership",
+    "Add multiwindow, multi-burn-rate alerts (tools like Sloth or Pyrra generate the Prometheus rules)",
+    "Publish incident roles and a blameless postmortem template",
+    "Log toil for two weeks and pick the top item to automate",
+    "Add a canary stage with automated analysis to the deploy pipeline",
+    "Hold a monthly SLO review: budget spent, pages, open postmortem actions"];
+  S.w.ck=S.w.ck||{};
+  const pct=tot?Math.round(right/tot*100):0;
+  el.innerHTML=`<div class="stats">
+      <div class="stat"><div class="v">${right}/${tot}</div><div class="l">checkpoints correct</div></div>
+      <div class="stat"><div class="v">${answered}/${tot}</div><div class="l">checkpoints answered</div></div>
+      <div class="stat"><div class="v">${Object.keys(S.seen).length}/${total}</div><div class="l">steps completed</div></div></div>
+    <div class="notice ${pct>=80?"ok":"warn"}">${answered<tot?"Some checkpoints are still unanswered. Use the module list to go back to them.":pct>=80?"You have a solid high-level grasp of the book. Read Chapters 2, 5 and Appendix B in full before you write your own SLOs.":"Review the modules where you missed questions. The book chapters to read are listed next to each module."}</div>
+    <div class="tw"><table><thead><tr><th>Module</th><th>Score</th><th>Read in the book</th></tr></thead><tbody>
+      ${rows.map(r=>`<tr><td>${r[0]}. ${esc(r[1])}</td><td class="num">${r[3]?r[4]+"/"+r[2]:"–"}</td><td>${esc(r[5])}</td></tr>`).join("")}</tbody></table></div>
+    <div><div class="wlabel" style="margin-bottom:8px">Starter checklist: first 30–60 days</div>
+    <div class="check">${C.map((c,i)=>`<label for="ck${i}"><input type="checkbox" id="ck${i}" data-i="${i}" ${S.w.ck[i]?"checked":""}><span>${esc(c)}</span></label>`).join("")}</div></div>`;
+  el.querySelectorAll(".check input").forEach(c=>c.onchange=()=>{ if(c.checked)S.w.ck[c.dataset.i]=1; else delete S.w.ck[c.dataset.i]; save(); });
+};
+
+/* ---------- boot ---------- */
+$("#resetBtn").onclick=()=>{
+  const b=$("#resetBtn");
+  if(b.dataset.armed){S={m:0,s:0,seen:{},ans:{},w:{}};save();b.textContent="Start over";delete b.dataset.armed;go();}
+  else{b.dataset.armed="1";b.textContent="Click again to erase progress";setTimeout(()=>{if(b.dataset.armed){delete b.dataset.armed;b.textContent="Start over";}},4000);}
+};
+document.addEventListener("keydown",e=>{
+  if(e.target.closest("input,select,textarea"))return;
+  if(e.key==="ArrowRight"){$("#next").click();} else if(e.key==="ArrowLeft"){const b=$("#back"); if(!b.disabled)b.click();}
+});
+renderLesson(); renderRail(); save();
+})();
+</script>
+</body>
+</html>

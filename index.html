@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Field Courses</title>
+<meta name="description" content="Free, interactive courses on DevOps, SRE, platform engineering, AI agents and security. Plain-language lessons, simulators and checkpoints, right in your browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: catalog — intro band, "how it works" row, course cards grid, footer */
+:root{
+  --bg:#F3F5F9; --surface:#FFFFFF; --sunk:#EBEEF5; --ink:#131A2A; --muted:#566079; --line:#D9DEE8;
+  --accent:#2A43C4; --accent-ink:#FFFFFF; --accent-soft:#E5E9FB;
+  --budget:#A85F00; --budget-soft:#FBEFD9; --ok:#1C7348; --ok-soft:#DFF2E7;
+  --f-display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --f-body:"Public Sans","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#0E1220; --surface:#161B2B; --sunk:#1C2236; --ink:#E7EAF3; --muted:#9BA4BA; --line:#2A3149;
+  --accent:#8FA2FF; --accent-ink:#0E1220; --accent-soft:#1F2752;
+  --budget:#F2A640; --budget-soft:#3A2A12; --ok:#55C890; --ok-soft:#14321F; color-scheme:dark;}}
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6}
+a{color:var(--accent)}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 48px;display:flex;flex-direction:column;gap:44px}
+h1,h2,h3{font-family:var(--f-display);line-height:1.12;text-wrap:balance;margin:0}
+p{margin:0}
+.kicker{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.intro{display:flex;flex-direction:column;gap:14px;max-width:760px}
+.intro h1{font-size:clamp(36px,6vw,58px)}
+.intro .lead{font-size:clamp(17px,2vw,20px);color:var(--muted);max-width:62ch}
+.intro .ctas{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+.btn{display:inline-block;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:10px 16px;font-weight:600;font-size:15px;text-decoration:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.how div{border-top:2px solid var(--accent);padding-top:12px;display:flex;flex-direction:column;gap:4px}
+.how b{font-family:var(--f-display);font-size:18px}
+.how span{color:var(--muted);font-size:15px}
+.sec{display:flex;flex-direction:column;gap:16px}
+.sec h2{font-size:26px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.course{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:10px;text-decoration:none;color:inherit}
+a.course:hover{border-color:var(--accent)}
+.course .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.course h3{font-size:21px}
+.course p{color:var(--muted);font-size:15px}
+.pill{font-size:12px;font-weight:600;padding:3px 10px;border-radius:99px;white-space:nowrap}
+.pill.live{background:var(--ok-soft);color:var(--ok)}
+.pill.soon{background:var(--budget-soft);color:var(--budget)}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:4px}
+.meta span{font-family:var(--f-mono);font-size:11.5px;padding:3px 8px;border-radius:99px;background:var(--sunk);color:var(--muted)}
+.course.planned{background:transparent;border-style:dashed}
+.go{font-weight:600;font-size:14px;color:var(--accent)}
+footer{border-top:1px solid var(--line);padding-top:16px;font-size:13.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="intro">
+    <div class="kicker">Free · open source · no sign-up</div>
+    <h1>Field Courses</h1>
+    <p class="lead">Interactive courses on DevOps, SRE, platform engineering, AI agents and security. Learn the ideas that matter in plain language, then try them in simulators and checkpoints, right in your browser.</p>
+    <div class="ctas">
+      <a class="btn primary" href="courses/sre-workbook/">Start with SRE</a>
+      <a class="btn" href="https://github.com/jazeer888/field-courses" target="_blank" rel="noopener">View on GitHub</a>
+    </div>
+  </header>
+
+  <section class="how" aria-label="How each course works">
+    <div><b>Plain words first</b><span>Every concept opens with an everyday comparison, then the precise version.</span></div>
+    <div><b>Learn by doing</b><span>Calculators, simulators and sorting exercises show cause and effect.</span></div>
+    <div><b>Check yourself</b><span>Each module ends with a checkpoint that explains the answer.</span></div>
+    <div><b>Pick up where you left off</b><span>Progress is saved in your browser. Nothing is sent anywhere.</span></div>
+  </section>
+
+  <section class="sec" aria-labelledby="avail">
+    <h2 id="avail">Courses</h2>
+    <div class="grid">
+      <a class="course" href="courses/sre-workbook/">
+        <div class="row"><span class="kicker">Book companion</span><span class="pill live">Available</span></div>
+        <h3>SRE Workbook</h3>
+        <p>The core ideas of <i>The Site Reliability Workbook</i>: SLIs, SLOs, error budgets, burn-rate alerting, toil, incidents, postmortems and how SRE teams work.</p>
+        <div class="meta"><span>11 modules</span><span>~50 min</span><span>Beginner–practitioner</span></div>
+        <span class="go">Start course →</span>
+      </a>
+      <div class="course planned">
+        <div class="row"><span class="kicker">Security</span><span class="pill soon">Planned</span></div>
+        <h3>AI Agent Security</h3>
+        <p>Prompt injection, tool permissions, the OWASP Top 10 for LLM apps, and identity and delegation for agents.</p>
+        <div class="meta"><span>In progress</span></div>
+      </div>
+      <div class="course planned">
+        <div class="row"><span class="kicker">Platform</span><span class="pill soon">Planned</span></div>
+        <h3>Platform Engineering</h3>
+        <p>Internal developer platforms, golden paths, self-service, and how to measure developer productivity.</p>
+        <div class="meta"><span>In progress</span></div>
+      </div>
+    </div>
+    <p style="color:var(--muted);font-size:15px">Want a course on something else? <a href="https://github.com/jazeer888/field-courses/issues/new?template=course-request.md" target="_blank" rel="noopener">Request it on GitHub</a>.</p>
+  </section>
+
+  <footer>
+    <span>Code under MIT · course content under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a></span>
+    <a href="https://github.com/jazeer888/field-courses/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contribute</a>
+    <a href="https://github.com/jazeer888/field-courses/issues/new?template=error-report.md" target="_blank" rel="noopener">Report an error</a>
+    <span>Book companions are independent study guides, not affiliated with the authors or publishers.</span>
+  </footer>
+</div>
+</body>
+</html>
