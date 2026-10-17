@@ -89,6 +89,10 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .back:hover{text-decoration:underline}
 .foot{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 16px}
 .foot a{color:var(--accent)}
+.starcta{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;justify-content:space-between;background:var(--accent-soft);border-radius:8px;padding:14px 16px}
+.starcta p{font-size:15px;max-width:52ch}
+.starbtn{display:inline-flex;align-items:center;gap:7px;background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:9px 16px;font-weight:600;font-size:15px;text-decoration:none;white-space:nowrap}
+.starbtn:hover{filter:brightness(1.08)}
 .formula{font-family:var(--f-mono);background:var(--sunk);border-radius:8px;padding:12px 14px;font-size:15px;overflow-x:auto}
 .controls{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px;flex-wrap:wrap}
 .btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 16px;font-weight:600;font-size:15px}
@@ -235,7 +239,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <footer class="foot">
     <span>Last reviewed: October 2026</span>
     <a href="https://github.com/jazeer888/field-courses/issues/new?template=error-report.md&amp;title=%5Bsre-workbook%5D+" target="_blank" rel="noopener">Found an error? Report it</a>
-    <a href="https://github.com/jazeer888/field-courses" target="_blank" rel="noopener">Source on GitHub</a>
+    <a href="https://github.com/jazeer888/field-courses" target="_blank" rel="noopener">★ Star on GitHub</a>
     <span>Content <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> · Code MIT</span>
   </footer>
 </div>
@@ -1015,7 +1019,8 @@ W.results=function(el){
     <div class="tw"><table><thead><tr><th>Module</th><th>Score</th><th>Read in the book</th></tr></thead><tbody>
       ${rows.map(r=>`<tr><td>${r[0]}. ${esc(r[1])}</td><td class="num">${r[3]?r[4]+"/"+r[2]:"–"}</td><td>${esc(r[5])}</td></tr>`).join("")}</tbody></table></div>
     <div><div class="wlabel" style="margin-bottom:8px">Starter checklist: first 30–60 days</div>
-    <div class="check">${C.map((c,i)=>`<label for="ck${i}"><input type="checkbox" id="ck${i}" data-i="${i}" ${S.w.ck[i]?"checked":""}><span>${esc(c)}</span></label>`).join("")}</div></div>`;
+    <div class="check">${C.map((c,i)=>`<label for="ck${i}"><input type="checkbox" id="ck${i}" data-i="${i}" ${S.w.ck[i]?"checked":""}><span>${esc(c)}</span></label>`).join("")}</div></div>
+    <div class="starcta"><p><b>Found this course useful?</b> A star on GitHub helps other engineers find Field Courses, and tells me which courses to build next.</p><a class="starbtn" href="https://github.com/jazeer888/field-courses" target="_blank" rel="noopener"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" style="vertical-align:-3px"><path fill="currentColor" d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/></svg> Star on GitHub</a></div>`;
   el.querySelectorAll(".check input").forEach(c=>c.onchange=()=>{ if(c.checked)S.w.ck[c.dataset.i]=1; else delete S.w.ck[c.dataset.i]; save(); });
 };
 
