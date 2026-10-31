@@ -11,7 +11,7 @@ Each course explains the ideas that matter in plain language, then lets you try 
 | Course | Type | Modules | Time | Status |
 |---|---|---|---|---|
 | [SRE Workbook](https://jazeer888.github.io/field-courses/courses/sre-workbook/) | Book companion | 11 | ~50 min | Available |
-| AI Agent Security | Topic | – | – | Planned |
+| [AI Agent Security](https://jazeer888.github.io/field-courses/courses/ai-agent-security/) | Topic (beginner) | 10 | ~55 min | Available |
 | Platform Engineering | Topic | – | – | Planned |
 
 Want a course on something else? [Request one](https://github.com/jazeer888/field-courses/issues/new?template=course-request.md).
